@@ -1,0 +1,2512 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Will a Customer Accept the Coupon?\n",
+    "\n",
+    "**Overview**\n",
+    "\n",
+    "The goal of this project is to use what you know about visualizations and probability distributions to distinguish between customers who accepted a driving coupon versus those that did not.\n",
+    "\n",
+    "**Data**\n",
+    "\n",
+    "\n",
+    "This data comes to us from the UCI Machine Learning repository and was collected via a survey on Amazon Mechanical Turk. The survey describes different driving scenarios including the destination, current time, weather, passenger, etc., and then ask the person whether he will accept the coupon if he is the driver. Answers that the user will drive there ‘right away’ or ‘later before the coupon expires’ are labeled as ‘Y = 1’ and answers ‘no, I do not want the coupon’ are labeled as ‘Y = 0’.  There are five different types of coupons -- less expensive restaurants (under \\\\$20), coffee houses, carry out & take away, bar, and more expensive restaurants (\\\\$20 - \\\\$50). "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Deliverables**\n",
+    "\n",
+    "Your final product should be a brief report that highlights the differences between customers who did and did not accept the coupons.  To explore the data you will utilize your knowledge of plotting, statistical summaries, and visualization using Python. You will publish your findings in a public facing github repository as your first portfolio piece. \n",
+    "\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Data Description\n",
+    "\n",
+    "The attributes of this data set include:\n",
+    "1. User attributes\n",
+    "    -  Gender: male, female\n",
+    "    -  Age: below 21, 21 to 25, 26 to 30, etc.\n",
+    "    -  Marital Status: single, married partner, unmarried partner, or widowed\n",
+    "    -  Number of children: 0, 1, or more than 1\n",
+    "    -  Education: high school, bachelors degree, associates degree, or graduate degree\n",
+    "    -  Occupation: architecture & engineering, business & financial, etc.\n",
+    "    -  Annual income: less than \\\\$12500, \\\\$12500 - \\\\$24999, \\\\$25000 - \\\\$37499, etc.\n",
+    "    -  Number of times that he/she goes to a bar: 0, less than 1, 1 to 3, 4 to 8 or greater than 8\n",
+    "    -  Number of times that he/she buys takeaway food: 0, less than 1, 1 to 3, 4 to 8 or greater\n",
+    "    than 8\n",
+    "    -  Number of times that he/she goes to a coffee house: 0, less than 1, 1 to 3, 4 to 8 or\n",
+    "    greater than 8\n",
+    "    -  Number of times that he/she eats at a restaurant with average expense less than \\\\$20 per\n",
+    "    person: 0, less than 1, 1 to 3, 4 to 8 or greater than 8\n",
+    "    -  Number of times that he/she goes to a bar: 0, less than 1, 1 to 3, 4 to 8 or greater than 8\n",
+    "\n",
+    "2. Contextual attributes\n",
+    "    - Driving destination: home, work, or no urgent destination\n",
+    "    - Location of user, coupon and destination: we provide a map to show the geographical\n",
+    "    location of the user, destination, and the venue, and we mark the distance between each\n",
+    "    two places with time of driving. The user can see whether the venue is in the same\n",
+    "    direction as the destination.\n",
+    "    - Weather: sunny, rainy, or snowy\n",
+    "    - Temperature: 30F, 55F, or 80F\n",
+    "    - Time: 10AM, 2PM, or 6PM\n",
+    "    - Passenger: alone, partner, kid(s), or friend(s)\n",
+    "\n",
+    "3. Coupon attributes\n",
+    "    - time before it expires: 2 hours or one day"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 247,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Problems\n",
+    "\n",
+    "Use the prompts below to get started with your data analysis.  \n",
+    "\n",
+    "1. Read in the `coupons.csv` file.\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 248,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = pd.read_csv('C:/Users/fz8fd2/Downloads/test/data/coupons.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 249,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Restaurant(&lt;20)</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>5 rows × 26 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "       destination  passanger weather  temperature  time  \\\n",
+       "0  No Urgent Place      Alone   Sunny           55   2PM   \n",
+       "1  No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "2  No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "3  No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "4  No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "\n",
+       "                  coupon expiration  gender age      maritalStatus  ...  \\\n",
+       "0        Restaurant(<20)         1d  Female  21  Unmarried partner  ...   \n",
+       "1           Coffee House         2h  Female  21  Unmarried partner  ...   \n",
+       "2  Carry out & Take away         2h  Female  21  Unmarried partner  ...   \n",
+       "3           Coffee House         2h  Female  21  Unmarried partner  ...   \n",
+       "4           Coffee House         1d  Female  21  Unmarried partner  ...   \n",
+       "\n",
+       "   CoffeeHouse CarryAway RestaurantLessThan20 Restaurant20To50  \\\n",
+       "0        never       NaN                  4~8              1~3   \n",
+       "1        never       NaN                  4~8              1~3   \n",
+       "2        never       NaN                  4~8              1~3   \n",
+       "3        never       NaN                  4~8              1~3   \n",
+       "4        never       NaN                  4~8              1~3   \n",
+       "\n",
+       "  toCoupon_GEQ5min toCoupon_GEQ15min toCoupon_GEQ25min direction_same  \\\n",
+       "0                1                 0                 0              0   \n",
+       "1                1                 0                 0              0   \n",
+       "2                1                 1                 0              0   \n",
+       "3                1                 1                 0              0   \n",
+       "4                1                 1                 0              0   \n",
+       "\n",
+       "  direction_opp  Y  \n",
+       "0             1  1  \n",
+       "1             1  0  \n",
+       "2             1  1  \n",
+       "3             1  0  \n",
+       "4             1  0  \n",
+       "\n",
+       "[5 rows x 26 columns]"
+      ]
+     },
+     "execution_count": 249,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "2. Investigate the dataset for missing or problematic data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 250,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Restaurant(&lt;20)</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12679</th>\n",
+       "      <td>Home</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12680</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12681</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Snowy</td>\n",
+       "      <td>30</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12682</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Snowy</td>\n",
+       "      <td>30</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12683</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Restaurant(20-50)</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>12684 rows × 26 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           destination  passanger weather  temperature  time  \\\n",
+       "0      No Urgent Place      Alone   Sunny           55   2PM   \n",
+       "1      No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "2      No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "3      No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "4      No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "...                ...        ...     ...          ...   ...   \n",
+       "12679             Home    Partner   Rainy           55   6PM   \n",
+       "12680             Work      Alone   Rainy           55   7AM   \n",
+       "12681             Work      Alone   Snowy           30   7AM   \n",
+       "12682             Work      Alone   Snowy           30   7AM   \n",
+       "12683             Work      Alone   Sunny           80   7AM   \n",
+       "\n",
+       "                      coupon expiration  gender age      maritalStatus  ...  \\\n",
+       "0            Restaurant(<20)         1d  Female  21  Unmarried partner  ...   \n",
+       "1               Coffee House         2h  Female  21  Unmarried partner  ...   \n",
+       "2      Carry out & Take away         2h  Female  21  Unmarried partner  ...   \n",
+       "3               Coffee House         2h  Female  21  Unmarried partner  ...   \n",
+       "4               Coffee House         1d  Female  21  Unmarried partner  ...   \n",
+       "...                      ...        ...     ...  ..                ...  ...   \n",
+       "12679  Carry out & Take away         1d    Male  26             Single  ...   \n",
+       "12680  Carry out & Take away         1d    Male  26             Single  ...   \n",
+       "12681           Coffee House         1d    Male  26             Single  ...   \n",
+       "12682                    Bar         1d    Male  26             Single  ...   \n",
+       "12683      Restaurant(20-50)         2h    Male  26             Single  ...   \n",
+       "\n",
+       "       CoffeeHouse CarryAway RestaurantLessThan20 Restaurant20To50  \\\n",
+       "0            never       NaN                  4~8              1~3   \n",
+       "1            never       NaN                  4~8              1~3   \n",
+       "2            never       NaN                  4~8              1~3   \n",
+       "3            never       NaN                  4~8              1~3   \n",
+       "4            never       NaN                  4~8              1~3   \n",
+       "...            ...       ...                  ...              ...   \n",
+       "12679        never       1~3                  4~8              1~3   \n",
+       "12680        never       1~3                  4~8              1~3   \n",
+       "12681        never       1~3                  4~8              1~3   \n",
+       "12682        never       1~3                  4~8              1~3   \n",
+       "12683        never       1~3                  4~8              1~3   \n",
+       "\n",
+       "      toCoupon_GEQ5min toCoupon_GEQ15min toCoupon_GEQ25min direction_same  \\\n",
+       "0                    1                 0                 0              0   \n",
+       "1                    1                 0                 0              0   \n",
+       "2                    1                 1                 0              0   \n",
+       "3                    1                 1                 0              0   \n",
+       "4                    1                 1                 0              0   \n",
+       "...                ...               ...               ...            ...   \n",
+       "12679                1                 0                 0              1   \n",
+       "12680                1                 0                 0              0   \n",
+       "12681                1                 0                 0              1   \n",
+       "12682                1                 1                 1              0   \n",
+       "12683                1                 0                 0              1   \n",
+       "\n",
+       "      direction_opp  Y  \n",
+       "0                 1  1  \n",
+       "1                 1  0  \n",
+       "2                 1  1  \n",
+       "3                 1  0  \n",
+       "4                 1  0  \n",
+       "...             ... ..  \n",
+       "12679             0  1  \n",
+       "12680             1  1  \n",
+       "12681             0  0  \n",
+       "12682             1  0  \n",
+       "12683             0  0  \n",
+       "\n",
+       "[12684 rows x 26 columns]"
+      ]
+     },
+     "execution_count": 250,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "3. Decide what to do about your missing data -- drop, replace, other..."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 251,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "destination                 0\n",
+       "passanger                   0\n",
+       "weather                     0\n",
+       "temperature                 0\n",
+       "time                        0\n",
+       "coupon                      0\n",
+       "expiration                  0\n",
+       "gender                      0\n",
+       "age                         0\n",
+       "maritalStatus               0\n",
+       "has_children                0\n",
+       "education                   0\n",
+       "occupation                  0\n",
+       "income                      0\n",
+       "car                     12576\n",
+       "Bar                       107\n",
+       "CoffeeHouse               217\n",
+       "CarryAway                 151\n",
+       "RestaurantLessThan20      130\n",
+       "Restaurant20To50          189\n",
+       "toCoupon_GEQ5min            0\n",
+       "toCoupon_GEQ15min           0\n",
+       "toCoupon_GEQ25min           0\n",
+       "direction_same              0\n",
+       "direction_opp               0\n",
+       "Y                           0\n",
+       "dtype: int64"
+      ]
+     },
+     "execution_count": 251,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.isnull().sum()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 124,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#drop 'car' column it is mostly null\n",
+    "df = data.drop('car',axis=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 125,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([nan, '4~8', '1~3', 'gt8', 'less1', 'never'], dtype=object)"
+      ]
+     },
+     "execution_count": 125,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df['CarryAway'].unique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 126,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "destination               0\n",
+       "passanger                 0\n",
+       "weather                   0\n",
+       "temperature               0\n",
+       "time                      0\n",
+       "coupon                    0\n",
+       "expiration                0\n",
+       "gender                    0\n",
+       "age                       0\n",
+       "maritalStatus             0\n",
+       "has_children              0\n",
+       "education                 0\n",
+       "occupation                0\n",
+       "income                    0\n",
+       "Bar                     107\n",
+       "CoffeeHouse             217\n",
+       "CarryAway               151\n",
+       "RestaurantLessThan20    130\n",
+       "Restaurant20To50        189\n",
+       "toCoupon_GEQ5min          0\n",
+       "toCoupon_GEQ15min         0\n",
+       "toCoupon_GEQ25min         0\n",
+       "direction_same            0\n",
+       "direction_opp             0\n",
+       "Y                         0\n",
+       "dtype: int64"
+      ]
+     },
+     "execution_count": 126,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.isnull().sum()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 127,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>22</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Restaurant(&lt;20)</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>23</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>24</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>25</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>26</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12679</th>\n",
+       "      <td>Home</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12680</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12681</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Snowy</td>\n",
+       "      <td>30</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12682</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Snowy</td>\n",
+       "      <td>30</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12683</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Restaurant(20-50)</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>12079 rows × 25 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           destination  passanger weather  temperature  time  \\\n",
+       "22     No Urgent Place      Alone   Sunny           55   2PM   \n",
+       "23     No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "24     No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "25     No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "26     No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "...                ...        ...     ...          ...   ...   \n",
+       "12679             Home    Partner   Rainy           55   6PM   \n",
+       "12680             Work      Alone   Rainy           55   7AM   \n",
+       "12681             Work      Alone   Snowy           30   7AM   \n",
+       "12682             Work      Alone   Snowy           30   7AM   \n",
+       "12683             Work      Alone   Sunny           80   7AM   \n",
+       "\n",
+       "                      coupon expiration gender age maritalStatus  ...  \\\n",
+       "22           Restaurant(<20)         1d   Male  21        Single  ...   \n",
+       "23              Coffee House         2h   Male  21        Single  ...   \n",
+       "24                       Bar         1d   Male  21        Single  ...   \n",
+       "25     Carry out & Take away         2h   Male  21        Single  ...   \n",
+       "26              Coffee House         1d   Male  21        Single  ...   \n",
+       "...                      ...        ...    ...  ..           ...  ...   \n",
+       "12679  Carry out & Take away         1d   Male  26        Single  ...   \n",
+       "12680  Carry out & Take away         1d   Male  26        Single  ...   \n",
+       "12681           Coffee House         1d   Male  26        Single  ...   \n",
+       "12682                    Bar         1d   Male  26        Single  ...   \n",
+       "12683      Restaurant(20-50)         2h   Male  26        Single  ...   \n",
+       "\n",
+       "       CoffeeHouse CarryAway RestaurantLessThan20 Restaurant20To50  \\\n",
+       "22           less1       4~8                  4~8            less1   \n",
+       "23           less1       4~8                  4~8            less1   \n",
+       "24           less1       4~8                  4~8            less1   \n",
+       "25           less1       4~8                  4~8            less1   \n",
+       "26           less1       4~8                  4~8            less1   \n",
+       "...            ...       ...                  ...              ...   \n",
+       "12679        never       1~3                  4~8              1~3   \n",
+       "12680        never       1~3                  4~8              1~3   \n",
+       "12681        never       1~3                  4~8              1~3   \n",
+       "12682        never       1~3                  4~8              1~3   \n",
+       "12683        never       1~3                  4~8              1~3   \n",
+       "\n",
+       "      toCoupon_GEQ5min toCoupon_GEQ15min toCoupon_GEQ25min direction_same  \\\n",
+       "22                   1                 0                 0              0   \n",
+       "23                   1                 0                 0              0   \n",
+       "24                   1                 0                 0              0   \n",
+       "25                   1                 1                 0              0   \n",
+       "26                   1                 0                 0              0   \n",
+       "...                ...               ...               ...            ...   \n",
+       "12679                1                 0                 0              1   \n",
+       "12680                1                 0                 0              0   \n",
+       "12681                1                 0                 0              1   \n",
+       "12682                1                 1                 1              0   \n",
+       "12683                1                 0                 0              1   \n",
+       "\n",
+       "      direction_opp  Y  \n",
+       "22                1  1  \n",
+       "23                1  0  \n",
+       "24                1  1  \n",
+       "25                1  0  \n",
+       "26                1  0  \n",
+       "...             ... ..  \n",
+       "12679             0  1  \n",
+       "12680             1  1  \n",
+       "12681             0  0  \n",
+       "12682             1  0  \n",
+       "12683             0  0  \n",
+       "\n",
+       "[12079 rows x 25 columns]"
+      ]
+     },
+     "execution_count": 127,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#drop rows that have nan, since there is still lots of data available\n",
+    "#original data set has 12684 rows\n",
+    "df1 = df.dropna()\n",
+    "df1\n",
+    "#a clean set of data with no NaN contains 12079 rows. We ratained 95.2% rows even after cleanup"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "4. What proportion of the total observations chose to accept the coupon? \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 128,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.5693352098683666"
+      ]
+     },
+     "execution_count": 128,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df1['Y'].mean()\n",
+    "#56.9% of the total population accepted the coupon"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "5. Use a bar plot to visualize the `coupon` column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 253,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<AxesSubplot:xlabel='Y', ylabel='coupon'>"
+      ]
+     },
+     "execution_count": 253,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "sns.barplot(data=df1,x='Y', y='coupon')\n",
+    "#Carry out/takeway and Restaurant(<20) had more acceptance of coupon"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "6. Use a histogram to visualize the temperature column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 130,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "temperature  Y\n",
+      "30           1    1179\n",
+      "             0    1016\n",
+      "55           1    1967\n",
+      "             0    1695\n",
+      "80           1    3731\n",
+      "             0    2491\n",
+      "Name: Y, dtype: int64\n",
+      "temperature\n",
+      "30    0.537130\n",
+      "55    0.537138\n",
+      "80    0.599646\n",
+      "Name: Y, dtype: float64\n",
+      "1    6877\n",
+      "0    5202\n",
+      "Name: Y, dtype: int64\n"
+     ]
+    },
+    {
+     "data": {
+      "image/png": "iVBORw0KGgoAAAANSUhEUgAAAYsAAAEGCAYAAACUzrmNAAAAOXRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjQuMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy/MnkTPAAAACXBIWXMAAAsTAAALEwEAmpwYAAAaZUlEQVR4nO3df5BU9Z3u8fcDIhCVjehoIQ0ZVOIGqIg6EjZ6UwYtYa2N6FaMeDfBrOxO1uBNXHZz1x+3Sr1b5GqtIVmTSC6JXjUb5U6yScEaMSGom01KwTEhIhJKKiA0cAHJGtFdUcbP/eN8J7ZDM2fGmTM90/28qrq6+9PnnP58Qefh/JjvUURgZmbWnWG1bsDMzAY/h4WZmeVyWJiZWS6HhZmZ5XJYmJlZrqNq3UBRTjzxxGhubq51G2ZmQ8ozzzzzUkQ0da3XbVg0NzfT3t5e6zbMzIYUSS9Wq/swlJmZ5XJYmJlZLoeFmZnlqttzFtW8+eablMtlXn/99Vq3ckSjRo2iVCoxYsSIWrdiZvZ7DRUW5XKZ4447jubmZiTVup3DRAT79++nXC4zadKkWrdjZvZ7DXUY6vXXX+eEE04YlEEBIIkTTjhhUO/5mFljaqiwAAZtUHQa7P2ZWWNquLAwM7Pec1i8CxHB+eefz6pVq35fa2trY86cOTXsysysOA6Ld0ES3/jGN1i0aBGvv/46r732GjfffDNf//rXa92amdWR5oklJPXq0TyxVEgvDXU1VH+aNm0aH/vYx7jjjjt47bXXmD9/Pqeddlqt2zKzOvLijp3EY1/s1TqadVMhvTgs+uCWW27h7LPP5uijj/Y8VGZW1xwWfXDMMcdw5ZVXcuyxxzJy5Mhat2NmVhifs+ijYcOGMWyY/xjNrL75p5yZmeVyWJiZWS6fs+ijW2+9tdYtmJkVznsWZmaWq7CwkDRK0jpJv5K0UdJtqX6rpJ2S1qfHJRXr3Chpi6TNkmZX1M+RtCF9dpc8gZKZ2YAq8jDUQWBWRLwqaQTwM0md82N8OSLurFxY0hRgHjAVOAX4iaT3R0QHsBRoBZ4CHgHmAKswM7MBUdieRWReTW9HpEd0s8pcYHlEHIyIrcAWYIakccCYiHgyIgJ4ALisqL7NzOxwhZ6zkDRc0npgL7A6Itamj66T9KykeyUdn2rjgR0Vq5dTbXx63bVuZmYDpNCwiIiOiJgOlMj2EqaRHVI6DZgO7Aa+lBavdh4iuqkfRlKrpHZJ7fv27etj92Zm1mlAroaKiJeBJ4A5EbEnhchbwDeBGWmxMjChYrUSsCvVS1Xq1b5nWUS0RERLU1NTbl8TJr6v1zM6dveYMPF9ud/56KOPcsYZZ3D66adz++235y5vZjYYFHaCW1IT8GZEvCxpNHARcIekcRGxOy12OfBcer0SeFDSErIT3JOBdRHRIemApJnAWmA+8NX+6LG8YztLfry5PzYFwKKLz+j2846ODhYuXMjq1asplUqce+65XHrppUyZMqXfejAzK0KRV0ONA+6XNJxsD6YtIh6W9G1J08kOJW0DPgMQERsltQHPA4eAhelKKIBrgfuA0WRXQQ3JK6HWrVvH6aefzqmnngrAvHnzWLFihcPCzAa9wsIiIp4FzqpS/1Q36ywGFleptwPT+rXBGti5cycTJrx9pK1UKrF27dpu1jAzGxz8G9wDKLvy9538+4VmNhQ4LAZQqVRix463rw4ul8uccsopNezIzKxnHBYD6Nxzz+WFF15g69atvPHGGyxfvpxLL7201m2ZmeVq6FlnSxMm5l7B1Nvtdeeoo47ia1/7GrNnz6ajo4NrrrmGqVOn9tv3m5kVpaHDYsf2Fwf8Oy+55BIuueSS/AXNzAYRH4YyM7NcDgszM8vlsDAzs1wOCzMzy+WwMDOzXA4LMzPL1dBh0Tyx1K9TlDdPLOV+5zXXXMNJJ53EtGlDfqorM2sgDf17Fi/u2Ek89sV+255m3ZS7zKc//Wmuu+465s+f32/fa2ZWtIbes6iFj3zkI4wdO7bWbZiZ9YrDwszMcjkszMwsl8PCzMxyOSzMzCxXQ18N9b4J43t0BVNvtpfnqquu4oknnuCll16iVCpx2223sWDBgn7rwcysCIWFhaRRwE+Bkel7vhcRt0gaC/xfoBnYBnwiIv49rXMjsADoAD4XET9K9XOA+4DRwCPA56PaPUp7adv2cl830WsPPfTQgH+nmVlfFXkY6iAwKyLOBKYDcyTNBG4A1kTEZGBNeo+kKcA8YCowB7hb0vC0raVAKzA5PeYU2LeZmXVRWFhE5tX0dkR6BDAXuD/V7wcuS6/nAssj4mBEbAW2ADMkjQPGRMSTaW/igYp1zMxsABR6glvScEnrgb3A6ohYC5wcEbsB0vNJafHxwI6K1cupNj697lqv9n2tktolte/bt69qT/1w9KpQg70/M2tMhYZFRHRExHSgRLaX0N2ESKq2iW7q1b5vWUS0RERLU1PTYZ+PGjWK/fv3D9ofyBHB/v37GTVqVK1bMTN7hwG5GioiXpb0BNm5hj2SxkXE7nSIaW9arAxMqFitBOxK9VKVeq+VSiXK5TJH2usYDEaNGkWplD8hoZnZQCryaqgm4M0UFKOBi4A7gJXA1cDt6XlFWmUl8KCkJcApZCey10VEh6QD6eT4WmA+8NV309OIESOYNGlSX4ZlZtaQityzGAfcn65oGga0RcTDkp4E2iQtALYDVwBExEZJbcDzwCFgYUR0pG1dy9uXzq5KDzMzGyCFhUVEPAucVaW+H7jwCOssBhZXqbcDvgGEmVmNeLoPMzPL5bAwM7NcDgszM8vlsDAzs1wOCzMzy+WwMDOzXA4LMzPL5bAwM7NcDgszM8vlsDAzs1wOCzMzy+WwMDOzXA4LMzPL5bAwM7NcDgszM8vlsDAzs1wOCzMzy+WwMDOzXA4LMzPLVVhYSJog6XFJmyRtlPT5VL9V0k5J69Pjkop1bpS0RdJmSbMr6udI2pA+u0uSiurbzMwOd1SB2z4E/E1E/ELSccAzklanz74cEXdWLixpCjAPmAqcAvxE0vsjogNYCrQCTwGPAHOAVQX2bmZmFQrbs4iI3RHxi/T6ALAJGN/NKnOB5RFxMCK2AluAGZLGAWMi4smICOAB4LKi+jYzs8MNyDkLSc3AWcDaVLpO0rOS7pV0fKqNB3ZUrFZOtfHpddd6te9pldQuqX3fvn39OQQzs4ZW5GEoACQdC/wzcH1EvCJpKfD3QKTnLwHXANXOQ0Q39cOLEcuAZQAtLS1VlzEzGzI0DM26qdfrFKHQsJA0giwovhMR3weIiD0Vn38TeDi9LQMTKlYvAbtSvVSlbmZW3+Itliy7p1erLGpdUEgrRV4NJeAeYFNELKmoj6tY7HLgufR6JTBP0khJk4DJwLqI2A0ckDQzbXM+sKKovs3M7HBF7lmcB3wK2CBpfardBFwlaTrZoaRtwGcAImKjpDbgebIrqRamK6EArgXuA0aTXQXlK6HMzAZQYWERET+j+vmGR7pZZzGwuEq9HZjWf92ZmVlv+De4zcwsl8PCzMxyOSzMzCyXw8LMzHI5LMzMLJfDwszMcjkszMwsl8PCzMxyOSzMzCyXw8LMzHI5LMzMLJfDwszMcvUoLCSd15OamZnVp57uWXy1hzUzM6tD3U5RLumPgA8DTZIWVXw0BhheZGNmZjZ45N3P4mjg2LTccRX1V4CPF9WUmZkNLt2GRUT8K/Cvku6LiBcHqCczMxtkenqnvJGSlgHNletExKwimjIzs8Glp2HxXeAbwLeAjpxlzcyszvT0aqhDEbE0ItZFxDOdj+5WkDRB0uOSNknaKOnzqT5W0mpJL6Tn4yvWuVHSFkmbJc2uqJ8jaUP67C5J1e7tbWZmBelpWPyLpM9KGpd+2I+VNDZnnUPA30TEB4CZwEJJU4AbgDURMRlYk96TPpsHTAXmAHdL6rziainQCkxOjzk9H6KZmfVVTw9DXZ2ev1BRC+DUI60QEbuB3en1AUmbgPHAXOCCtNj9wBPA36X68og4CGyVtAWYIWkbMCYingSQ9ABwGbCqh72bmVkf9SgsImJSX75EUjNwFrAWODkFCRGxW9JJabHxwFMVq5VT7c30umu92ve0ku2BMHHixL60bGZmFXoUFpLmV6tHxAM9WPdY4J+B6yPilW5ON1T7ILqpV+tnGbAMoKWlpeoyZmbWez09Z3FuxeO/ALcCl+atJGkEWVB8JyK+n8p7JI1Ln48D9qZ6GZhQsXoJ2JXqpSp1s0GreWIJSb1+NE8s5W/crAZ6ehjqv1W+l/QHwLe7WyddsXQPsCkillR8tJLsHMjt6XlFRf1BSUuAU8hOZK+LiA5JByTNJDuMNR/PS2WD3Is7dhKPfbHX62nWTQV0Y9Z3PT3B3dV/kP0w7855wKeADZLWp9pNZCHRJmkBsB24AiAiNkpqA54nu5JqYUR0/k7HtcB9wGiyE9s+uW1mNoB6es7iX3j7PMFw4ANAW3frRMTPqH6+AeDCI6yzGFhcpd4OTOtJr2Zm1v96umdxZ8XrQ8CLEVE+0sJmZlZfenSCO00o+GuymWePB94osikzMxtcenqnvE8A68jOL3wCWCvJU5SbmTWInh6Guhk4NyL2AkhqAn4CfK+oxszMbPDo6e9ZDOsMimR/L9Y1M7Mhrqd7Fo9K+hHwUHp/JfBIMS2Zmdlgk3cP7tPJ5nL6gqQ/Bc4nuxz2SeA7A9CfmZkNAnmHkr4CHACIiO9HxKKI+GuyvYqvFNuamZkNFnlh0RwRz3Ytpl+Say6kIzMzG3TywmJUN5+N7s9GzMxs8MoLi6cl/WXXYprXqdvbqpqZWf3IuxrqeuAHkv6Mt8OhBTgauLzAvsyGNg17dzPIylek2+DUbVhExB7gw5I+ytsT+f0wIh4rvDOzoSzeYsmye3q92qLWBQU0Y9Z3Pb2fxePA4wX3YmZmg5T3ec3MLJfDwszMcjkszMwsl8PCzMxyFRYWku6VtFfScxW1WyXtlLQ+PS6p+OxGSVskbZY0u6J+jqQN6bO7JB3pVq1mZlaQIvcs7gPmVKl/OSKmp8cjAJKmAPOAqWmduyUNT8svBVqByelRbZtmZlagwsIiIn4K/LaHi88FlkfEwYjYCmwBZkgaB4yJiCcjIoAHgMsKadjMzI6oFucsrpP0bDpMdXyqjQd2VCxTTrXx6XXXupmZDaCBDoulwGnAdGA38KVUr3YeIrqpVyWpVVK7pPZ9+/b1sVUzM+s0oGEREXsioiMi3gK+CcxIH5WBCRWLloBdqV6qUj/S9pdFREtEtDQ1NfVv82ZmDWxAwyKdg+h0OdB5pdRKYJ6kkZImkZ3IXhcRu4EDkmamq6DmAysGsmczM+v5Pbh7TdJDwAXAiZLKwC3ABZKmkx1K2gZ8BiAiNkpqA54HDgELI6IjbepasiurRgOr0sPMzAZQYWEREVdVKR9xGs6IWAwsrlJv5+0Zb83MrAb8G9xmZpbLYWFmZrkcFmZmlsthYWZmuRwWZmaWy2FhZma5HBZmZpbLYWFmZrkcFmZmlsthYWZmuRwWZmaWy2FhZma5HBZVNE8sIalXj+aJpfwNm5kNUYXNOjuUvbhjJ/HYF3u1jmbdVFA3Zma15z0LMzPL5bAwM7NcDgszM8vlsDAzs1wOCzMzy1VYWEi6V9JeSc9V1MZKWi3phfR8fMVnN0raImmzpNkV9XMkbUif3SVJRfVsZmbVFblncR8wp0vtBmBNREwG1qT3SJoCzAOmpnXuljQ8rbMUaAUmp0fXbZqZWcEK+z2LiPippOYu5bnABen1/cATwN+l+vKIOAhslbQFmCFpGzAmIp4EkPQAcBmwqqi+AdCw3v/ehHxEz8zq10D/Ut7JEbEbICJ2Szop1ccDT1UsV061N9PrrvWqJLWS7YUwceLEd99lvMWSZff0apVFrQve/feZmQ1yg+Wfw9XOQ0Q39aoiYllEtERES1NTU781Z2bW6AY6LPZIGgeQnvemehmYULFcCdiV6qUqdTMzG0ADHRYrgavT66uBFRX1eZJGSppEdiJ7XTpkdUDSzHQV1PyKdczMbIAUds5C0kNkJ7NPlFQGbgFuB9okLQC2A1cARMRGSW3A88AhYGFEdKRNXUt2ZdVoshPbxZ7cNjOzwxR5NdRVR/jowiMsvxhYXKXeDkzrx9bMzKyXBssJbjMzG8QcFmZmlsthYWZmuRwWZmaWy2FhZma5HBZmZpbLYWFmZrkcFmZmlsthYWZmuRwWZmaWy2FhZma5HBZmZpbLYWFmZrkcFmZmlsthYWZmuRwWZmaWy2FhZma5HBZmZpbLYWFmZrlqEhaStknaIGm9pPZUGytptaQX0vPxFcvfKGmLpM2SZteiZzOzRlbLPYuPRsT0iGhJ728A1kTEZGBNeo+kKcA8YCowB7hb0vBaNGxm1qgG02GoucD96fX9wGUV9eURcTAitgJbgBkD356ZWeOqVVgE8GNJz0hqTbWTI2I3QHo+KdXHAzsq1i2n2mEktUpql9S+b9++glo3M2s8R9Xoe8+LiF2STgJWS/p1N8uqSi2qLRgRy4BlAC0tLVWXMTOz3qvJnkVE7ErPe4EfkB1W2iNpHEB63psWLwMTKlYvAbsGrlszMxvwsJB0jKTjOl8DFwPPASuBq9NiVwMr0uuVwDxJIyVNAiYD6wa2azOzxlaLw1AnAz+Q1Pn9D0bEo5KeBtokLQC2A1cARMRGSW3A88AhYGFEdNSgbzOzhjXgYRERvwHOrFLfD1x4hHUWA4sLbs3MzI5gMF06a2Zmg5TDwszMcjkszMwsl8PCzMxyOSzMzCyXw8LMzHI5LMzMLJfDwszMcjkszMwsl8PCzMxyOSzMzCyXw8LMzHI5LMzMLJfDwszMcjkszMwsl8PCzMxyOSzMzCyXw8LMzHI5LMzMLNeQCQtJcyRtlrRF0g217sfMrJEMibCQNBz4OvDHwBTgKklTatuVmVnjGBJhAcwAtkTEbyLiDWA5MLfGPZmZNQxFRK17yCXp48CciPiL9P5TwIci4rouy7UCrentGcDmd/mVJwIvvct1hyqPuTE02pgbbbzQ9zG/LyKauhaP6sMGB5Kq1A5LuYhYBizr85dJ7RHR0tftDCUec2NotDE32nihuDEPlcNQZWBCxfsSsKtGvZiZNZyhEhZPA5MlTZJ0NDAPWFnjnszMGsaQOAwVEYckXQf8CBgO3BsRGwv8yj4fyhqCPObG0GhjbrTxQkFjHhInuM3MrLaGymEoMzOrIYeFmZnlauiwkDRK0jpJv5K0UdJtqT5W0mpJL6Tn42vda3+TNFzSLyU9nN7X9ZglbZO0QdJ6Se2pVu9jfq+k70n6taRNkv6onscs6Yz099v5eEXS9fU8ZgBJf51+fj0n6aH0c63fx9zQYQEcBGZFxJnAdGCOpJnADcCaiJgMrEnv683ngU0V7xthzB+NiOkV16DX+5j/EXg0Iv4QOJPs77tuxxwRm9Pf73TgHOA/gB9Qx2OWNB74HNASEdPILgCaRxFjjgg/spP87wF+AXyI7De/x6X6OGBzrfvr57GW0n9As4CHU63ex7wNOLFLrW7HDIwBtpIuYmmEMXcZ58XAz+t9zMB4YAcwluzq1ofT2Pt9zI2+Z9F5OGY9sBdYHRFrgZMjYjdAej6phi0W4SvAfwfeqqjV+5gD+LGkZ9K0MFDfYz4V2Af8n3S48VuSjqG+x1xpHvBQel23Y46IncCdwHZgN/C7iPgxBYy54cMiIjoi220tATMkTatxS4WS9CfA3oh4pta9DLDzIuJsspmLF0r6SK0bKthRwNnA0og4C3iNOjr80p30i7uXAt+tdS9FS+ci5gKTgFOAYyR9sojvaviw6BQRLwNPAHOAPZLGAaTnvbXrrN+dB1wqaRvZ7L2zJP0T9T1mImJXet5Ldhx7BvU95jJQTnvKAN8jC496HnOnPwZ+ERF70vt6HvNFwNaI2BcRbwLfBz5MAWNu6LCQ1CTpven1aLI/+F+TTSVydVrsamBFTRosQETcGBGliGgm21V/LCI+SR2PWdIxko7rfE12TPc56njMEfH/gB2SzkilC4HnqeMxV7iKtw9BQX2PeTswU9J7JIns73kTBYy5oX+DW9IHgfvJriAYBrRFxP+UdALQBkwk+8u4IiJ+W7tOiyHpAuBvI+JP6nnMkk4l25uA7PDMgxGxuJ7HDCBpOvAt4GjgN8Cfk/47p37H/B6yE76nRsTvUq3e/55vA64EDgG/BP4COJZ+HnNDh4WZmfVMQx+GMjOznnFYmJlZLoeFmZnlcliYmVkuh4WZmeVyWFhDSjOyfrbWfeRJs6a+p9Z9mDksrFG9F6h5WCjT3f+H15NNctmbbQ6J2yXb0OKwsEZ1O3Bauu/BP0j6gqSnJT1bcV+T5nQviG+lewV8R9JFkn6e7hMwIy13q6RvS3os1f+y80u62e4mSXeTzXQ8QdJSSe16531VPkc238/jkh5PtVcrtv1xSfel1/dJWpKWu0PSaZIeTRMn/pukPxyAP1OrY/4XiDWqG4BpETFd0sXAx8nmixKwMk00uB04HbgCaAWeBv4rcD7ZRHU3AZel7X0QmAkcA/xS0g+BacDkI2z3DODPI+KzAJJujojfShoOrJH0wYi4S9IisvtwvNSDMb0fuCgiOiStAf4qIl6Q9CHgbrIp6c3eFYeFWTZX1MVkUyVANlXCZLIf6lsjYgOApI1kN5QJSRuA5optrIiI/wT+M/3rfgZZqBxpuy9GxFMV638iTZ1+FNn9B6YAz/ZyHN9NQXEs2WRy382mCwJgZC+3ZfYODguz7F/9/ysi/vc7ilIz2d0UO71V8f4t3vn/T9d5cyJnu69VvJ8E/C1wbkT8ezq0NOoIvVZ+T9dlOrc5DHg5Tb1v1i98zsIa1QHguPT6R8A16V/kSBovqbc3i5mr7N7HJwAXkB2y6ul2x5D9oP+dpJPJptiu1idkU09/IJ0Uv7xaIxHxCrBV0hXpeyXpzF6Ox+wdvGdhDSki9qcT1c8Bq4AHgSfTYZtXgU8CHb3Y5Drgh2SzfP59un/GLkkfyNtuRPxK0i+BjWSzw/684uNlwCpJuyPio2TnWh4mm1n1ObJDW9X8GbBU0v8ARpDdu+RXvRiP2Tt41lmzPpJ0K/BqRNxZ617MiuLDUGZmlst7FmZmlst7FmZmlsthYWZmuRwWZmaWy2FhZma5HBZmZpbr/wMhYAiLamDX1gAAAABJRU5ErkJggg==\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "sns.histplot(data=df1,x='temperature',hue=df1['Y'])\n",
+    "print(df1.groupby('temperature')['Y'].value_counts())\n",
+    "print(df1.groupby('temperature')['Y'].mean())\n",
+    "\n",
+    "print(df1['Y'].value_counts())\n",
+    "#when temperature is 80 degrees, there are more coupons accepted"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Investigating the Bar Coupons**\n",
+    "\n",
+    "Now, we will lead you through an exploration of just the bar related coupons.  \n",
+    "\n",
+    "1. Create a new `DataFrame` that contains just the bar coupons.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 169,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>24</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>35</th>\n",
+       "      <td>Home</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>39</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>46</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>46</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>57</th>\n",
+       "      <td>Home</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>46</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12663</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12664</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12667</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12670</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12682</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Snowy</td>\n",
+       "      <td>30</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>1913 rows × 25 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           destination  passanger weather  temperature  time coupon  \\\n",
+       "24     No Urgent Place  Friend(s)   Sunny           80  10AM    Bar   \n",
+       "35                Home      Alone   Sunny           55   6PM    Bar   \n",
+       "39                Work      Alone   Sunny           55   7AM    Bar   \n",
+       "46     No Urgent Place  Friend(s)   Sunny           80  10AM    Bar   \n",
+       "57                Home      Alone   Sunny           55   6PM    Bar   \n",
+       "...                ...        ...     ...          ...   ...    ...   \n",
+       "12663  No Urgent Place  Friend(s)   Sunny           80  10PM    Bar   \n",
+       "12664  No Urgent Place  Friend(s)   Sunny           55  10PM    Bar   \n",
+       "12667  No Urgent Place      Alone   Rainy           55  10AM    Bar   \n",
+       "12670  No Urgent Place    Partner   Rainy           55   6PM    Bar   \n",
+       "12682             Work      Alone   Snowy           30   7AM    Bar   \n",
+       "\n",
+       "      expiration gender age maritalStatus  ...  CoffeeHouse CarryAway  \\\n",
+       "24            1d   Male  21        Single  ...        less1       4~8   \n",
+       "35            1d   Male  21        Single  ...        less1       4~8   \n",
+       "39            1d   Male  21        Single  ...        less1       4~8   \n",
+       "46            1d   Male  46        Single  ...          4~8       1~3   \n",
+       "57            1d   Male  46        Single  ...          4~8       1~3   \n",
+       "...          ...    ...  ..           ...  ...          ...       ...   \n",
+       "12663         1d   Male  26        Single  ...        never       1~3   \n",
+       "12664         2h   Male  26        Single  ...        never       1~3   \n",
+       "12667         1d   Male  26        Single  ...        never       1~3   \n",
+       "12670         2h   Male  26        Single  ...        never       1~3   \n",
+       "12682         1d   Male  26        Single  ...        never       1~3   \n",
+       "\n",
+       "      RestaurantLessThan20 Restaurant20To50 toCoupon_GEQ5min  \\\n",
+       "24                     4~8            less1                1   \n",
+       "35                     4~8            less1                1   \n",
+       "39                     4~8            less1                1   \n",
+       "46                     1~3            never                1   \n",
+       "57                     1~3            never                1   \n",
+       "...                    ...              ...              ...   \n",
+       "12663                  4~8              1~3                1   \n",
+       "12664                  4~8              1~3                1   \n",
+       "12667                  4~8              1~3                1   \n",
+       "12670                  4~8              1~3                1   \n",
+       "12682                  4~8              1~3                1   \n",
+       "\n",
+       "      toCoupon_GEQ15min toCoupon_GEQ25min direction_same direction_opp  Y  \n",
+       "24                    0                 0              0             1  1  \n",
+       "35                    0                 0              1             0  1  \n",
+       "39                    1                 1              0             1  1  \n",
+       "46                    0                 0              0             1  0  \n",
+       "57                    0                 0              1             0  0  \n",
+       "...                 ...               ...            ...           ... ..  \n",
+       "12663                 1                 0              0             1  0  \n",
+       "12664                 1                 0              0             1  0  \n",
+       "12667                 1                 0              0             1  0  \n",
+       "12670                 1                 0              0             1  0  \n",
+       "12682                 1                 1              0             1  0  \n",
+       "\n",
+       "[1913 rows x 25 columns]"
+      ]
+     },
+     "execution_count": 169,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df2 = df1[df1['coupon'].str.contains('Bar')]\n",
+    "df2"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "2. What proportion of bar coupons were accepted?\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 170,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.41191845269210664"
+      ]
+     },
+     "execution_count": 170,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df2['Y'].mean()\n",
+    "#41% of bar coupons were accepted"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "3. Compare the acceptance rate between those who went to a bar 3 or fewer times a month to those who went more.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 172,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.37267441860465117\n",
+      "0.7616580310880829\n"
+     ]
+    }
+   ],
+   "source": [
+    "ar3orless = df2[df2['Bar'].str.contains('never') | df2['Bar'].str.contains('less1') | df2['Bar'].str.contains('1~3')]['Y'].mean()\n",
+    "print(ar3orless)\n",
+    "arMorethan3 =  df2[df2['Bar'].str.contains('4~8') | df2['Bar'].str.contains('gt8')]['Y'].mean()\n",
+    "print(arMorethan3)\n",
+    "\n",
+    "#acceptance rate is much higher at 76% for people who visited a more more than 3 times a month"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 175,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[21 46 26 31 41 50 36 20]\n",
+      "['never' 'less1' '1~3' 'gt8' '4~8']\n"
+     ]
+    }
+   ],
+   "source": [
+    "#df2['age'] = pd.to_numeric(df2['age'])\n",
+    "print(df2['age'].unique())\n",
+    "print(df2['Bar'].unique())\n",
+    "#setting age to 20, for people below 21 and age to 50, for age 50 plus"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 174,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\fz8fd2\\Anaconda3\\lib\\site-packages\\pandas\\core\\indexing.py:1817: SettingWithCopyWarning: \n",
+      "A value is trying to be set on a copy of a slice from a DataFrame.\n",
+      "Try using .loc[row_indexer,col_indexer] = value instead\n",
+      "\n",
+      "See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy\n",
+      "  self._setitem_single_column(loc, value, pi)\n"
+     ]
+    }
+   ],
+   "source": [
+    "df2.loc[df2['age'] == \"below21\", 'age'] = 20\n",
+    "df2.loc[df2['age'] == \"50plus\", 'age'] = 50\n",
+    "df2.loc[df2['age'] == \"21\", 'age'] = 21\n",
+    "df2.loc[df2['age'] == \"46\", 'age'] = 46\n",
+    "df2.loc[df2['age'] == \"26\", 'age'] = 26\n",
+    "df2.loc[df2['age'] == \"31\", 'age'] = 31\n",
+    "df2.loc[df2['age'] == \"36\", 'age'] = 36\n",
+    "df2.loc[df2['age'] == \"41\", 'age'] = 41"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 145,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "destination             object\n",
+       "passanger               object\n",
+       "weather                 object\n",
+       "temperature              int64\n",
+       "time                    object\n",
+       "coupon                  object\n",
+       "expiration              object\n",
+       "gender                  object\n",
+       "age                      int64\n",
+       "maritalStatus           object\n",
+       "has_children             int64\n",
+       "education               object\n",
+       "occupation              object\n",
+       "income                  object\n",
+       "Bar                     object\n",
+       "CoffeeHouse             object\n",
+       "CarryAway               object\n",
+       "RestaurantLessThan20    object\n",
+       "Restaurant20To50        object\n",
+       "toCoupon_GEQ5min         int64\n",
+       "toCoupon_GEQ15min        int64\n",
+       "toCoupon_GEQ25min        int64\n",
+       "direction_same           int64\n",
+       "direction_opp            int64\n",
+       "Y                        int64\n",
+       "dtype: object"
+      ]
+     },
+     "execution_count": 145,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df2.dtypes"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "4. Compare the acceptance rate between drivers who go to a bar more than once a month and are over the age of 25 to the all others.  Is there a difference?\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 176,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\fz8fd2\\AppData\\Local\\Temp/ipykernel_9448/994439535.py:1: SettingWithCopyWarning: \n",
+      "A value is trying to be set on a copy of a slice from a DataFrame.\n",
+      "Try using .loc[row_indexer,col_indexer] = value instead\n",
+      "\n",
+      "See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy\n",
+      "  df2['age'] = pd.to_numeric(df2['age'])\n"
+     ]
+    }
+   ],
+   "source": [
+    "df2['age'] = pd.to_numeric(df2['age'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 185,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array(['never', 'less1', '1~3', 'gt8', '4~8'], dtype=object)"
+      ]
+     },
+     "execution_count": 185,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df2['Bar'].unique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 192,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.6898263027295285\n",
+      "0.33774834437086093\n"
+     ]
+    }
+   ],
+   "source": [
+    "#prob of accepting coupon, if age >=25 and they go to bar more than once per month\n",
+    "ar1 = df2[\n",
+    "    (df2['age'] > 25) & \n",
+    "           (df2['Bar'].str.contains(\"1~3\") | df2['Bar'].str.contains('4~8') | df2['Bar'].str.contains('gt8')) \n",
+    "             ]['Y'].mean()\n",
+    "\n",
+    "print(ar1)\n",
+    "\n",
+    "#prob of accepting coupon, if age >=25 and they go to bar less than once per month\n",
+    "#plus\n",
+    "#prob of accepting coupon, if age < 25 \n",
+    "\n",
+    "ar2 = df2[\n",
+    "    ((df2['age'] > 25) &\n",
+    "    (df2['Bar'].str.contains('less1') | df2['Bar'].str.contains('never'))) |\n",
+    "    ((df2['age'] <= 25))\n",
+    "]['Y'].mean()\n",
+    "     \n",
+    "print(ar2)\n",
+    "\n",
+    "#answer 4: 69% chance of accepting coupon if over 25 and they go to bar more than once per month. 34% chance of accepting \n",
+    "#coupon for others\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "5. Construct a null and alternative hypothesis for the difference between groups of drivers who go to a bar more than once a month and are over the age of 25 to all other drivers. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 193,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#null hypothesis : Accepting coupon when users go to bar more than once and their age is over 25 is same as all other drivers\n",
+    "#alternate hypothesis : people who visit a bar more than once and are aged over 25 is more likely to accept coupon"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "6. Using alpha at 0.05 test your hypothesis and state your conclusion."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 220,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Mean accept when age over 25 and visit bar more than once per month: 0.6898263027295285\n",
+      "Mean accept when age over 25 and visit bar less than once per month or age less than 25: 0.33774834437086093\n",
+      "meanAccept1 std value: 0.4625645628364088\n",
+      "meanAccept2 std value: 0.4729422800359561\n",
+      "p-value nan\n",
+      "we accept null hypothesis\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\fz8fd2\\Anaconda3\\lib\\site-packages\\numpy\\core\\fromnumeric.py:3702: RuntimeWarning: Degrees of freedom <= 0 for slice\n",
+      "  return _methods._var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,\n",
+      "C:\\Users\\fz8fd2\\Anaconda3\\lib\\site-packages\\numpy\\core\\_methods.py:253: RuntimeWarning: invalid value encountered in double_scalars\n",
+      "  ret = ret.dtype.type(ret / rcount)\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<seaborn.axisgrid.FacetGrid at 0x239dd480c40>"
+      ]
+     },
+     "execution_count": 220,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 360x360 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from scipy.stats import ttest_ind\n",
+    "\n",
+    "df_n = df2[\n",
+    "    (df2['age'] > 25) & \n",
+    "           (df2['Bar'].str.contains(\"1~3\") | df2['Bar'].str.contains('4~8') | df2['Bar'].str.contains('gt8')) \n",
+    "             ]\n",
+    "\n",
+    "meanAccept1 = np.mean(df_n['Y'])\n",
+    "\n",
+    "df_a = df2[\n",
+    "    ((df2['age'] > 25) &\n",
+    "    (df2['Bar'].str.contains('less1') | df2['Bar'].str.contains('never'))) |\n",
+    "    ((df2['age'] <= 25))\n",
+    "]\n",
+    "meanAccept2 = np.mean(df_a['Y'])\n",
+    "\n",
+    "print(\"Mean accept when age over 25 and visit bar more than once per month:\",meanAccept1)\n",
+    "print(\"Mean accept when age over 25 and visit bar less than once per month or age less than 25 and accept coupon:\",meanAccept2)\n",
+    "\n",
+    "meanAccept1_std = np.std(df_n['Y'])\n",
+    "meanAccept2_std = np.std(df_a['Y'])\n",
+    "\n",
+    "print(\"meanAccept1 std value:\",meanAccept1_std)\n",
+    "print(\"meanAccept2 std value:\",meanAccept2_std)\n",
+    "\n",
+    "ttest,pval = ttest_ind(meanAccept1_std,meanAccept2_std)\n",
+    "\n",
+    "print(\"p-value\",pval)\n",
+    "if pval <0.05:\n",
+    "  print(\"we reject null hypothesis\")\n",
+    "else:\n",
+    "  print(\"we accept null hypothesis\")\n",
+    "\n",
+    "sns.displot(df_n['Y'], kde=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 221,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#the above plot shows that the data is not normally distributed, hence ttest is not valid and p_value is nan"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "7. Use the same process to compare the acceptance rate between drivers who go to bars more than once a month and had passengers that were not a kid and had occupations other than farming, fishing, or forestry. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 280,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.6027397260273972\n"
+     ]
+    }
+   ],
+   "source": [
+    "df_1 = df2[\n",
+    "    (\n",
+    "    ((df2['passanger'] == 'Friends(s)') | (df2['passanger'] == 'Partner')) &\n",
+    "    (df2['occupation'] != 'Farming Fishing & Forestry') &\n",
+    "    (df2['Bar'].str.contains(\"1~3\") | df2['Bar'].str.contains('4~8') | df2['Bar'].str.contains('gt8')) \n",
+    "    )\n",
+    "]\n",
+    "print(df_1['Y'].mean())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "8. Compare the acceptance rates between those passengers who:\n",
+    "\n",
+    "- go to bars more than once a month, had passengers that were not a kid, and were not widowed *OR*\n",
+    "- go to bars more than once a month and are under the age of 30 *OR*\n",
+    "- go to cheap restaurants more than 4 times a month and income is less than 50K. \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 259,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.6027397260273972\n",
+      "0.7195121951219512\n",
+      "0.4281391830559758\n"
+     ]
+    }
+   ],
+   "source": [
+    "df_1 = df2[\n",
+    "    (\n",
+    "    ((df2['passanger'] == 'Friends(s)') | (df2['passanger'] == 'Partner')) & \n",
+    "    (df2['maritalStatus'] != 'Widowed') &\n",
+    "           (df2['Bar'].str.contains(\"1~3\") | df2['Bar'].str.contains('4~8') | df2['Bar'].str.contains('gt8')) \n",
+    "    )\n",
+    "             ]\n",
+    "print(df_1['Y'].mean())\n",
+    "\n",
+    "df_2 = df2[\n",
+    "    (\n",
+    "    (df2['age'] < 30) &\n",
+    "           (df2['Bar'].str.contains(\"1~3\") | df2['Bar'].str.contains('4~8') | df2['Bar'].str.contains('gt8'))\n",
+    "    )\n",
+    "    ]\n",
+    "print(df_2['Y'].mean())\n",
+    "\n",
+    "df_3 = df2[\n",
+    "    (\n",
+    "    ((df2['income'] < 'Less than $12500') | (df2['income'] < '$12500 - $24999') | (df2['income'] < '$25000 - $49999')) &\n",
+    "           ((df2['RestaurantLessThan20'] == \"4~8\") | (df2['RestaurantLessThan20'] == 'gt8'))\n",
+    "           )\n",
+    "    ]\n",
+    "print(df_3['Y'].mean())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "9.  Based on these observations, what do you hypothesize about passengers who accepted the bar coupons?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#young folks who are less than 30 years old and who go to bars more than once a month accept coupons more often. 72%\n",
+    "#followed colosely by folks who are in the car with partner or friends, and they visit bars more than once a month, accept coupons"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 235,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array(['4~8', '1~3', 'less1', 'gt8', 'never'], dtype=object)"
+      ]
+     },
+     "execution_count": 235,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df2['RestaurantLessThan20'].unique()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Independent Investigation\n",
+    "\n",
+    "Using the bar coupon example as motivation, you are to explore one of the other coupon groups and try to determine the characteristics of passengers who accept the coupons.  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 286,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['Carry out & Take away']\n"
+     ]
+    }
+   ],
+   "source": [
+    "df3 = df1[df1['coupon'] == 'Carry out & Take away']\n",
+    "#getting a new dataframe of carry out and take away coupon for further analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 290,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "1    1682\n",
+      "0     598\n",
+      "Name: Y, dtype: int64\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "0.737719298245614"
+      ]
+     },
+     "execution_count": 290,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#What % of people accept carry out and take away coupons\n",
+    "print(df3['Y'].value_counts())\n",
+    "df3['Y'].mean()\n",
+    "#74% of people accept carry out coupons when offered"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 292,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<AxesSubplot:xlabel='Y', ylabel='occupation'>"
+      ]
+     },
+     "execution_count": 292,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "#plot a bar chart of accept vs not accept for each income level for carry out\n",
+    "sns.barplot(data=df3,x=\"Y\",y=df3['occupation'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 293,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Unemployed                                   347\n",
+      "Student                                      295\n",
+      "Computer & Mathematical                      254\n",
+      "Sales & Related                              198\n",
+      "Education&Training&Library                   164\n",
+      "Management                                   136\n",
+      "Office & Administrative Support              118\n",
+      "Arts Design Entertainment Sports & Media     101\n",
+      "Business & Financial                          99\n",
+      "Retired                                       84\n",
+      "Food Preparation & Serving Related            58\n",
+      "Healthcare Support                            48\n",
+      "Community & Social Services                   44\n",
+      "Legal                                         41\n",
+      "Healthcare Practitioners & Technical          40\n",
+      "Transportation & Material Moving              38\n",
+      "Personal Care & Service                       32\n",
+      "Protective Service                            31\n",
+      "Architecture & Engineering                    30\n",
+      "Life Physical Social Science                  30\n",
+      "Construction & Extraction                     28\n",
+      "Installation Maintenance & Repair             24\n",
+      "Production Occupations                        21\n",
+      "Farming Fishing & Forestry                    10\n",
+      "Building & Grounds Cleaning & Maintenance      9\n",
+      "Name: occupation, dtype: int64\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Plot the same plot for top 5 occupations, excluding unemployed\n",
+    "print(df3['occupation'].value_counts())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 311,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "top_5_occupations = {'Student', 'Computer & Mathematical','Sales & Related', 'Education&Training&Library', 'Management'}\n",
+    "df4 = df3[df3['occupation'].isin(top_5_occupations)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 312,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<AxesSubplot:xlabel='Y', ylabel='occupation'>"
+      ]
+     },
+     "execution_count": 312,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "sns.barplot(data=df3,x=\"Y\",y=df4['occupation'])\n",
+    "#80% of the take away coupons issued to management is accepted"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 333,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "1    261\n",
+      "0     86\n",
+      "Name: Y, dtype: int64\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(df3[df3['occupation'] == 'Unemployed']['Y'].value_counts())\n",
+    "#assumed unemployed folks would not use carry out coupons, instead would cook at homw. But that is not the case."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.7"
+  },
+  "widgets": {
+   "application/vnd.jupyter.widget-state+json": {
+    "state": {},
+    "version_major": 2,
+    "version_minor": 0
+   }
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
